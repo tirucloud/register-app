@@ -1,0 +1,5 @@
+aws_region = "us-east-1"
+ami_id = "ami-xxxxxxxxxxxxxxxxx"
+key_name = "your-keypair-name"
+subnet_id = "subnet-xxxxxxxx"
+vpc_id = "vpc-xxxxxxxx"
