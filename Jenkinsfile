@@ -5,13 +5,14 @@ pipeline {
         maven 'Maven3'
     }
     environment {
-	    APP_NAME = "register-app-pipeline"
-            RELEASE = "1.0.0"
-            DOCKER_USER = "tirucloud"
-            DOCKER_PASS = 'dockerhub'
-            IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
-            IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-	    JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+        APP_NAME = "register-app"
+        RELEASE = "1.0.0"
+        DOCKER_USER = "tirucloud"
+        DOCKER_PASS = 'dockerhub'
+        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
+        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
+        JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+        KUBECONFIG_CREDENTIAL_ID = 'kubeconfig-eks' // Set this to your Jenkins credential ID for kubeconfig
     }
     stages{
         stage("Cleanup Workspace"){
@@ -41,11 +42,11 @@ pipeline {
 
        stage("SonarQube Analysis"){
            steps {
-	           script {
-		        withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
+               script {
+                withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
                         sh "mvn sonar:sonar"
-		        }
-	           }	
+                }
+               }    
            }
        }
 
@@ -53,7 +54,7 @@ pipeline {
            steps {
                script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
-                }	
+                }    
             }
 
         }
@@ -77,7 +78,20 @@ pipeline {
        stage("Trivy Scan") {
            steps {
                script {
-	            sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image tirucloud/register-app-pipeline:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
+                   sh "docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:${IMAGE_TAG} --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
+               }
+           }
+       }
+
+       stage("Deploy to EKS") {
+           steps {
+               withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG')]) {
+                   sh '''
+                   export KUBECONFIG=$KUBECONFIG
+                   kubectl set image deployment/${APP_NAME} ${APP_NAME}=${IMAGE_NAME}:${IMAGE_TAG} -n default || \
+                   kubectl apply -f k8s-deployment.yaml
+                   kubectl rollout status deployment/${APP_NAME} -n default
+                   '''
                }
            }
        }

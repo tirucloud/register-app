@@ -1,0 +1,40 @@
+# Maven
+/todoapp/target/
+!/todoapp/.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Java
+*.class
+
+# Docker
+*.jar
+*.war
+*.ear
+
+# Kubernetes
+*.yaml
+
+# Misc
+.env
+
+# Terraform
+/terraform-dir/**/.terraform/
+/terraform-dir/**/*.tfstate
+/terraform-dir/**/*.tfstate.*
+/terraform-dir/**/.terraform.lock.hcl
+/terraform-dir/**/*.tfvars
+/terraform-dir/**/crash.log
+/terraform-dir/**/*.backup
